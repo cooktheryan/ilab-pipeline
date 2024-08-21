@@ -1,68 +1,55 @@
 from kfp import dsl
 
-@dsl.component
+@dsl.container_component
 def ilab_init_op():
-    return dsl.ContainerOp(
-        name='ilab-init',
+    return dsl.ContainerSpec(
         image='quay.io/rcook/nvidia1:2',
         command=['/usr/local/bin/ilab', 'config', 'init', '--non-interactive'],
-        file_outputs={},
-        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},
-        gpu_limit=1,
+        resources=dsl.Resources(limits={'nvidia.com/gpu': '1'}),
+        volume_mounts=[dsl.VolumeMount(volume=dsl.PipelineVolume(pvc='taxonomy'), mount_path='/instructlab')]
     )
 
-@dsl.component
+@dsl.container_component
 def ilab_model_op():
-    return dsl.ContainerOp(
-        name='ilab-model',
+    return dsl.ContainerSpec(
         image='quay.io/rcook/nvidia1:2',
         command=['/usr/local/bin/ilab', 'model', 'download'],
-        file_outputs={},
-        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},
-        gpu_limit=1,
+        resources=dsl.Resources(limits={'nvidia.com/gpu': '1'}),
+        volume_mounts=[dsl.VolumeMount(volume=dsl.PipelineVolume(pvc='taxonomy'), mount_path='/instructlab')]
     )
 
-@dsl.component
+@dsl.container_component
 def ilab_taxonomy_fork_clone_op():
-    return dsl.ContainerOp(
-        name='ilab-taxonomy-fork-clone',
+    return dsl.ContainerSpec(
         image='quay.io/rcook/nvidia1:2',
         command=['git', 'clone', 'https://github.com/cooktheryan/taxonomy.git', '/instructlab/my-taxonomy'],
-        file_outputs={},
-        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},
-        gpu_limit=1,
+        resources=dsl.Resources(limits={'nvidia.com/gpu': '1'}),
+        volume_mounts=[dsl.VolumeMount(volume=dsl.PipelineVolume(pvc='taxonomy'), mount_path='/instructlab')]
     )
 
-@dsl.component
+@dsl.container_component
 def ilab_taxonomy_sed_op():
-    return dsl.ContainerOp(
-        name='ilab-taxonomy-sed',
+    return dsl.ContainerSpec(
         image='quay.io/rcook/nvidia1:2',
         command=['sed', '-i', 's/three/four/g', 'my-taxonomy/compositional_skills/extraction/inference/qualitative/e2e-siblings/qna.yaml'],
-        file_outputs={},
-        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},
-        gpu_limit=1,
+        resources=dsl.Resources(limits={'nvidia.com/gpu': '1'}),
+        volume_mounts=[dsl.VolumeMount(volume=dsl.PipelineVolume(pvc='taxonomy'), mount_path='/instructlab')]
     )
 
-@dsl.component
+@dsl.container_component
 def ilab_taxonomy_validate_op():
-    return dsl.ContainerOp(
-        name='ilab-taxonomy-validate',
+    return dsl.ContainerSpec(
         image='quay.io/rcook/nvidia1:2',
         command=['/usr/local/bin/ilab', 'taxonomy', 'diff', '--taxonomy-path=/instructlab/my-taxonomy'],
-        file_outputs={},
-        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},
-        gpu_limit=1,
+        resources=dsl.Resources(limits={'nvidia.com/gpu': '1'}),
+        volume_mounts=[dsl.VolumeMount(volume=dsl.PipelineVolume(pvc='taxonomy'), mount_path='/instructlab')]
     )
 
-@dsl.component
+@dsl.container_component
 def ilab_train_op():
-    return dsl.ContainerOp(
-        name='ilab-train',
+    return dsl.ContainerSpec(
         image='quay.io/rcook/nvidia1:2',
-        command=['/usr/local/bin/ilab', 'data', 'generate', '--taxonomy-path=/instructlab/my-taxonomy'],
-        file_outputs={},
-        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},
-        gpu_limit=1,
+        command=['/usr/local/bin/ilab', 'data', 'generate', '--taxonomy-path=/instructlab/my-taxonomy', 'num-epochs=1'],
+        resources=dsl.Resources(limits={'nvidia.com/gpu': '1'}),
+        volume_mounts=[dsl.VolumeMount(volume=dsl.PipelineVolume(pvc='taxonomy'), mount_path='/instructlab')]
     )
-
