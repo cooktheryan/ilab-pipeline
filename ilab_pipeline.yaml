@@ -1,0 +1,270 @@
+# PIPELINE DEFINITION
+# Name: ilab-train-pipeline
+# Description: Instructlab training workflow
+components:
+  comp-ilab-init-op:
+    executorLabel: exec-ilab-init-op
+  comp-ilab-model-op:
+    executorLabel: exec-ilab-model-op
+  comp-ilab-taxonomy-fork-clone-op:
+    executorLabel: exec-ilab-taxonomy-fork-clone-op
+  comp-ilab-taxonomy-sed-op:
+    executorLabel: exec-ilab-taxonomy-sed-op
+  comp-ilab-taxonomy-validate-op:
+    executorLabel: exec-ilab-taxonomy-validate-op
+  comp-ilab-train-op:
+    executorLabel: exec-ilab-train-op
+deploymentSpec:
+  executors:
+    exec-ilab-init-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - ilab_init_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef ilab_init_op():\n    return dsl.ContainerOp(\n        name='ilab-init',\n\
+          \        image='quay.io/rcook/nvidia1:2',\n        command=['/usr/local/bin/ilab',\
+          \ 'config', 'init', '--non-interactive'],\n        file_outputs={},\n  \
+          \      pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},\n\
+          \        gpu_limit=1,\n    )\n\n"
+        image: python:3.8
+    exec-ilab-model-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - ilab_model_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef ilab_model_op():\n    return dsl.ContainerOp(\n        name='ilab-model',\n\
+          \        image='quay.io/rcook/nvidia1:2',\n        command=['/usr/local/bin/ilab',\
+          \ 'model', 'download'],\n        file_outputs={},\n        pvolumes={'/instructlab':\
+          \ dsl.PipelineVolume(pvc='taxonomy')},\n        gpu_limit=1,\n    )\n\n"
+        image: python:3.8
+    exec-ilab-taxonomy-fork-clone-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - ilab_taxonomy_fork_clone_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef ilab_taxonomy_fork_clone_op():\n    return dsl.ContainerOp(\n\
+          \        name='ilab-taxonomy-fork-clone',\n        image='quay.io/rcook/nvidia1:2',\n\
+          \        command=['git', 'clone', 'https://github.com/cooktheryan/taxonomy.git',\
+          \ '/instructlab/my-taxonomy'],\n        file_outputs={},\n        pvolumes={'/instructlab':\
+          \ dsl.PipelineVolume(pvc='taxonomy')},\n        gpu_limit=1,\n    )\n\n"
+        image: python:3.8
+    exec-ilab-taxonomy-sed-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - ilab_taxonomy_sed_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef ilab_taxonomy_sed_op():\n    return dsl.ContainerOp(\n      \
+          \  name='ilab-taxonomy-sed',\n        image='quay.io/rcook/nvidia1:2',\n\
+          \        command=['sed', '-i', 's/three/four/g', 'my-taxonomy/compositional_skills/extraction/inference/qualitative/e2e-siblings/qna.yaml'],\n\
+          \        file_outputs={},\n        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},\n\
+          \        gpu_limit=1,\n    )\n\n"
+        image: python:3.8
+    exec-ilab-taxonomy-validate-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - ilab_taxonomy_validate_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef ilab_taxonomy_validate_op():\n    return dsl.ContainerOp(\n \
+          \       name='ilab-taxonomy-validate',\n        image='quay.io/rcook/nvidia1:2',\n\
+          \        command=['/usr/local/bin/ilab', 'taxonomy', 'diff', '--taxonomy-path=/instructlab/my-taxonomy'],\n\
+          \        file_outputs={},\n        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},\n\
+          \        gpu_limit=1,\n    )\n\n"
+        image: python:3.8
+    exec-ilab-train-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - ilab_train_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef ilab_train_op():\n    return dsl.ContainerOp(\n        name='ilab-train',\n\
+          \        image='quay.io/rcook/nvidia1:2',\n        command=['/usr/local/bin/ilab',\
+          \ 'data', 'generate', '--taxonomy-path=/instructlab/my-taxonomy'],\n   \
+          \     file_outputs={},\n        pvolumes={'/instructlab': dsl.PipelineVolume(pvc='taxonomy')},\n\
+          \        gpu_limit=1,\n    )\n\n"
+        image: python:3.8
+pipelineInfo:
+  description: Instructlab training workflow
+  name: ilab-train-pipeline
+root:
+  dag:
+    tasks:
+      ilab-init-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-ilab-init-op
+        taskInfo:
+          name: ilab-init-op
+      ilab-model-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-ilab-model-op
+        dependentTasks:
+        - ilab-init-op
+        taskInfo:
+          name: ilab-model-op
+      ilab-taxonomy-fork-clone-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-ilab-taxonomy-fork-clone-op
+        dependentTasks:
+        - ilab-model-op
+        taskInfo:
+          name: ilab-taxonomy-fork-clone-op
+      ilab-taxonomy-sed-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-ilab-taxonomy-sed-op
+        dependentTasks:
+        - ilab-taxonomy-fork-clone-op
+        taskInfo:
+          name: ilab-taxonomy-sed-op
+      ilab-taxonomy-validate-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-ilab-taxonomy-validate-op
+        dependentTasks:
+        - ilab-taxonomy-sed-op
+        taskInfo:
+          name: ilab-taxonomy-validate-op
+      ilab-train-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-ilab-train-op
+        dependentTasks:
+        - ilab-model-op
+        - ilab-taxonomy-validate-op
+        taskInfo:
+          name: ilab-train-op
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.8.0
